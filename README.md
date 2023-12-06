@@ -71,3 +71,18 @@ $result = Invoke-RestMethod "https://graph.microsoft.com/v1.0/users" -Headers @{
 $result.value | Measure-Object
 $result.value | Select-Object id,userPrincipalName
 ```
+
+#### Certificate based authentication using Service principle name
+
+```powershell
+$client_id = "*****************"
+$tenant_id = "********************"
+$thumb_print = (Get-ChildItem "Cert:\LocalMachine\my" | Where-Object { $_.Subject -eq "CN=*******" }).Thumbprint
+
+Connect-MgGraph -ClientId $client_id -TenantId $tenant_id -CertificateThumbprint $thumb_print
+
+$result = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/users"
+$result.value
+$result.value | Select-Object id,displayName,userPrincipalName
+```
+
