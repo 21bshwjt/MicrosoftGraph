@@ -34,6 +34,8 @@ $result.value | Select-Object id,userPrincipalName
 
 <img src="https://github.com/21bshwjt/MicrosoftGraph/blob/main/Screenshots/Consent.png?raw=true" width="800" height="320">
 
+#### Above permissions are needed for that Application
+
 ```powershell
 <##
 .Description
