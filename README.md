@@ -36,6 +36,7 @@ $result.value | Select-Object id,userPrincipalName
 
 #### Above permissions are needed for that Application
 
+
 ```powershell
 <##
 .Description
