@@ -17,7 +17,7 @@ https://graph.microsoft.com/v1.0/users?$select=id,userPrincipalName
 https://graph.microsoft.com/v1.0/users?$top=3&$select=id,userPrincipalName
 ```
 
-### PowerShell
+### Retrieve users from the Microsoft Graph API using a User account (Tested with Global Admin)
 
 ```powershell
 $url = "https://graph.microsoft.com/v1.0/users"
@@ -26,6 +26,41 @@ $header = @{Authorization = "Bearer $token"}
 invoke-RestMethod -uri $url -Headers $header
 $result =invoke-RestMethod -uri $url -Headers $header
 $result.value
+$result.value | Measure-Object
+$result.value | Select-Object id,userPrincipalName
+```
+
+### Retrieve users from the Microsoft Graph API using an Azure Service Principal
+
+```powershell
+<##
+.Description
+Retrieve users from the Microsoft Graph API using an Azure Service Principal
+
+Source: https://github.com/goodworkaround/bluescreen_scripts/blob/main/Working%20with%20the%20Microsoft%20Graph%20from%20PowerShell/get-access-token-manual.ps1
+##>
+
+# Define variables
+$tenantId = "*********************"
+$clientId = "*********************"
+$clientSecret = "*****************"
+
+# Define API endpoint and parameters
+$tokenEndpoint = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token"
+$tokenParams = @{
+    grant_type    = "client_credentials"
+    client_id     = $clientId
+    client_secret = $clientSecret
+    scope         = "https://graph.microsoft.com/.default"
+}
+
+# Get access token
+$accessToken = Invoke-RestMethod -Method Post -Uri $tokenEndpoint -Body $tokenParams
+
+# Output access token
+#Write-Output $accessToken.access_token
+
+$result = Invoke-RestMethod "https://graph.microsoft.com/v1.0/users" -Headers @{Authorization = "Bearer $($accessToken.access_token)"}
 $result.value | Measure-Object
 $result.value | Select-Object id,userPrincipalName
 ```
