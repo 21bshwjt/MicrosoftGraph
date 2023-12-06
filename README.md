@@ -1,5 +1,7 @@
-# Microsoft Graph
+# Microsoft Graph API
 [Microsoft Graph](https://developer.microsoft.com/en-us/graph/graph-explorer)
+
+### Graph Explorer
 
 ```powershell
 # Default Query
@@ -14,6 +16,8 @@ https://graph.microsoft.com/v1.0/users?$select=id,userPrincipalName
 # Get Top three users
 https://graph.microsoft.com/v1.0/users?$top=3&$select=id,userPrincipalName
 ```
+
+### PowerShell
 
 ```powershell
 $url = "https://graph.microsoft.com/v1.0/users"
