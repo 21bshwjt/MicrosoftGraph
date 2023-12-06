@@ -75,6 +75,7 @@ $result.value | Select-Object id,userPrincipalName
 #### Certificate based authentication using Service principle name
 
 ```powershell
+# Permissions are needed as per the above screenshot. 
 $client_id = "*****************"
 $tenant_id = "********************"
 $thumb_print = (Get-ChildItem "Cert:\LocalMachine\my" | Where-Object { $_.Subject -eq "CN=*******" }).Thumbprint
