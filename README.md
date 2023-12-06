@@ -43,6 +43,7 @@ $result.value | Select-Object id,userPrincipalName
 Retrieve users from the Microsoft Graph API using an Azure Service Principal
 
 Source: https://github.com/goodworkaround/bluescreen_scripts/blob/main/Working%20with%20the%20Microsoft%20Graph%20from%20PowerShell/get-access-token-manual.ps1
+https://github.com/goodworkaround/bluescreen_scripts/blob/main/Working%20with%20the%20Microsoft%20Graph%20from%20PowerShell/get-access-token-sdk.ps1
 ##>
 
 # Define variables
