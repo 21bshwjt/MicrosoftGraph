@@ -72,7 +72,7 @@ $result.value | Measure-Object
 $result.value | Select-Object id,userPrincipalName
 ```
 
-### Retrieve users from the PowerShell Microsoft Graph using System Assigned Managed Identity & KeyVault
+### Retrieve users from the Microsoft Graph PowerShell using System Assigned Managed Identity & KeyVault
 
 ```powershell
 Connect-AzAccount -Identity
