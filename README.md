@@ -72,7 +72,20 @@ $result.value | Measure-Object
 $result.value | Select-Object id,userPrincipalName
 ```
 
-#### Certificate based authentication using Service principle name
+### Retrieve users from the PowerShell Microsoft Graph using System Assigned Managed Identity & KeyVault
+
+```powershell
+Connect-AzAccount -Identity
+$ApplicationId = "<AppID>"
+$SecuredPassword = Get-AzKeyVaultSecret -VaultName "<KV_Name>" -Name "<Secret_Name>" -AsPlainText
+$tenantID = "<Tenant_ID>"
+$SecuredPasswordPassword = ConvertTo-SecureString -String $SecuredPassword -AsPlainText -Force
+$ClientSecretCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ApplicationId, $SecuredPasswordPassword
+Connect-MgGraph -TenantId $tenantID -ClientSecretCredential $ClientSecretCredential
+Get-MgUser
+```
+
+### Certificate based authentication using Service principle name
 
 ```powershell
 # Permissions are needed as per the above screenshot. 
@@ -87,7 +100,7 @@ $result.value
 $result.value | Select-Object id,displayName,userPrincipalName
 ```
 
-#### Create an Application using Graph API
+### Create an Application using Graph API
 
 ```powershell
 # 'Application.ReadWrite.OwnedBy' - Permission is required
