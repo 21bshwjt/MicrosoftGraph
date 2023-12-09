@@ -80,9 +80,9 @@ $result.value | Select-Object id,userPrincipalName
 #Requires -Module @{ ModuleName = 'Microsoft.Graph.Authentication'; ModuleVersion = '2.10.0' }
 #Requires -Module @{ ModuleName = 'Microsoft.Graph.Users'; ModuleVersion = '2.10.0' }
 Connect-AzAccount -Identity
-$ApplicationId = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<Your_ClientId>" -AsPlainText
-$SecuredPassword = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<Your_Client_Secret>" -AsPlainText
-$tenantID = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<Your_TenantID>" -AsPlainText
+$ApplicationId = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<ClientId_Secret>" -AsPlainText
+$SecuredPassword = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<Client_Secret>" -AsPlainText
+$tenantID = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<TenantID_Secret>" -AsPlainText
 
 $SecuredPasswordPassword = ConvertTo-SecureString -String $SecuredPassword -AsPlainText -Force
 $ClientSecretCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList `
