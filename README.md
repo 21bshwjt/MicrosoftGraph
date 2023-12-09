@@ -72,7 +72,7 @@ $result.value | Measure-Object
 $result.value | Select-Object id,userPrincipalName
 ```
 
-### Retrieve users from the Microsoft Graph PowerShell using System Assigned Managed Identity(MSI) & KeyVault
+### Retrieve AAD Users from the Microsoft Graph PowerShell using System Assigned Managed Identity(MSI) & KeyVault
 
 ```powershell
 #Requires -Module @{ ModuleName = 'Az.Accounts'; ModuleVersion = '2.13.2' }
