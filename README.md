@@ -114,7 +114,7 @@ $SecuredPasswordPassword = ConvertTo-SecureString -String $SecuredPassword -AsPl
 $ClientSecretCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList `
 $ApplicationId, $SecuredPasswordPassword
 Connect-MgGraph -TenantId $tenantID -ClientSecretCredential $ClientSecretCredential
-Get-MgUser
+Get-MgUser | Select-Object DisplayName, Id, UserPrincipalName
 ```
 
 ### Certificate based authentication using Service principle name
