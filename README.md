@@ -85,7 +85,8 @@ $SecuredPassword = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<You
 $tenantID = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<Your_TenantID>" -AsPlainText
 
 $SecuredPasswordPassword = ConvertTo-SecureString -String $SecuredPassword -AsPlainText -Force
-$ClientSecretCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ApplicationId, $SecuredPasswordPassword
+$ClientSecretCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList `
+$ApplicationId, $SecuredPasswordPassword
 Connect-MgGraph -TenantId $tenantID -ClientSecretCredential $ClientSecretCredential
 Get-MgUser
 ```
