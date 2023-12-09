@@ -1,5 +1,5 @@
 # Microsoft Graph API
-[Microsoft Graph](https://developer.microsoft.com/en-us/graph/graph-explorer)
+[Microsoft Graph](https://developer.microsoft.com/en-us/graph/graph-explorer) or [https://aka.ms/ge](https://aka.ms/ge)
 
 ### Graph Explorer
 
