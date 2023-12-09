@@ -72,13 +72,18 @@ $result.value | Measure-Object
 $result.value | Select-Object id,userPrincipalName
 ```
 
-### Retrieve users from the Microsoft Graph PowerShell using System Assigned Managed Identity & KeyVault
+### Retrieve users from the Microsoft Graph PowerShell using System Assigned Managed Identity(MSI) & KeyVault
 
 ```powershell
+#Requires -Module @{ ModuleName = 'Az.Accounts'; ModuleVersion = '2.13.2' }
+#Requires -Module @{ ModuleName = 'Az.KeyVault'; ModuleVersion = '5.0.1' }
+#Requires -Module @{ ModuleName = 'Microsoft.Graph.Authentication'; ModuleVersion = '2.10.0' }
+#Requires -Module @{ ModuleName = 'Microsoft.Graph.Users'; ModuleVersion = '2.10.0' }
 Connect-AzAccount -Identity
-$ApplicationId = "<AppID>"
-$SecuredPassword = Get-AzKeyVaultSecret -VaultName "<KV_Name>" -Name "<Secret_Name>" -AsPlainText
-$tenantID = "<Tenant_ID>"
+$ApplicationId = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<Your_ClientId>" -AsPlainText
+$SecuredPassword = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<Your_Client_Secret>" -AsPlainText
+$tenantID = Get-AzKeyVaultSecret -VaultName "<Your_KeyVault>" -Name "<Your_TenantID>" -AsPlainText
+
 $SecuredPasswordPassword = ConvertTo-SecureString -String $SecuredPassword -AsPlainText -Force
 $ClientSecretCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ApplicationId, $SecuredPasswordPassword
 Connect-MgGraph -TenantId $tenantID -ClientSecretCredential $ClientSecretCredential
