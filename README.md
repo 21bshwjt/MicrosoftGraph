@@ -101,6 +101,7 @@ $az_resources = Invoke-RestMethod $url -Headers @{Authorization = "Bearer $($acc
 ### Retrieve AAD Users from the Microsoft Graph PowerShell using System Assigned Managed Identity(MSI) & KeyVault
 
 ```powershell
+#Script is tested from Azure Automation Account & Azure VM
 #Requires -Module @{ ModuleName = 'Az.Accounts'; ModuleVersion = '2.13.2' }
 #Requires -Module @{ ModuleName = 'Az.KeyVault'; ModuleVersion = '5.0.1' }
 #Requires -Module @{ ModuleName = 'Microsoft.Graph.Authentication'; ModuleVersion = '2.10.0' }
