@@ -72,6 +72,32 @@ $result.value | Measure-Object
 $result.value | Select-Object id,userPrincipalName
 ```
 
+### Microsoft Azure REST API's using Client credential flow
+
+```powershell
+# Microsoft Azure REST API's using Client credential flow
+Connect-AzAccount -Identity
+$tenantid = Get-AzKeyVaultSecret -VaultName "<KeyVault>" -Name "<tenantId_Seceret>" -AsPlainText
+$openid = Invoke-RestMethod -Uri "https://login.microsoftonline.com/$tenantid/.well-known/openid-configuration"
+$tokenendpoint = $openid.token_endpoint
+
+$body = @{
+    grant_type    = "client_credentials"
+    client_id     = "<Client_Id>"
+    client_secret = "<Client_Secret>"
+    redirect_uri = "https://localhost"
+    resource = "https://management.core.windows.net"
+    tenant = "<Domainname.com>" # optional
+    
+}
+
+$token = Invoke-RestMethod -Uri $tokenendpoint -Body $body -Method Post
+$access_token = $token.access_token
+
+$url = "https://management.azure.com/subscriptions/<Subscription_id>/resources?api-version=2021-04-01"
+$az_resources = Invoke-RestMethod $url -Headers @{Authorization = "Bearer $($access_token)"} -Method Get
+```
+
 ### Retrieve AAD Users from the Microsoft Graph PowerShell using System Assigned Managed Identity(MSI) & KeyVault
 
 ```powershell
