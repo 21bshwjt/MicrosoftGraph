@@ -32,7 +32,7 @@ $result.value | Select-Object id,userPrincipalName
 
 ### Retrieve users from the Microsoft Graph API using an Azure Service Principal
 
-<img src="https://github.com/21bshwjt/MicrosoftGraph/blob/main/Screenshots/Consent.png?raw=true" width="800" height="320">
+<img src="https://github.com/21bshwjt/MicrosoftGraph/blob/main/Screenshots/perms.png?raw=true" width="800" height="320">
 
 #### Above permissions are needed for that Application
 
