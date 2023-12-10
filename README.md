@@ -53,7 +53,7 @@ $clientId = "*********************"
 $clientSecret = "*****************"
 
 # Define API endpoint and parameters
-$tokenEndpoint = "https://login.microsoftonline.com/$tenantId/oauth2/token"
+$tokenEndpoint = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token"
 $tokenParams = @{
     grant_type    = "client_credentials"
     client_id     = $clientId
