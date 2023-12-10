@@ -147,7 +147,7 @@ Connect-MgGraph -ClientId $client_id -TenantId $tenant_id -CertificateThumbprint
 New-MgApplication -DisplayName <My_New_App1>
 ```
 
-### Create AAD Users from Azure Automation PowerShell RunBook
+### Get AAD Users from Azure Automation PowerShell RunBook
 ```powershell
 # Get the Azure Automation connection object
 $connection = Get-AutomationConnection -Name "<Azure_SPI>"
