@@ -169,3 +169,11 @@ $result = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1
 #$result.value
 $result.value | Select-Object id,displayName,userPrincipalName
 ```
+### Get Tenant Creation Date Using Postman
+- API : https://graph.microsoft.com/v1.0/organization
+- Access Token URL
+- Client ID
+- Client Secret
+- Scope : https://graph.microsoft.com/.default
+- Client Authentication:  Send as Basic Auth Header
+- Attribute : **createdDateTime**
