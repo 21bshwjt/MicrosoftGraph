@@ -182,9 +182,9 @@ $result.value | Select-Object id,displayName,userPrincipalName
 
 ```powershell
 # Define variables
-$tenantId = "***********************"
-$clientId = "***********************"
-$clientSecret = "***********************"
+$tenantId = "************************"
+$clientId = "************************"
+$clientSecret = "************************"
 
 # Define API endpoint and parameters
 $tokenEndpoint = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token"
@@ -201,7 +201,16 @@ $accessToken = Invoke-RestMethod -Method Post -Uri $tokenEndpoint -Body $tokenPa
 # Output access token
 #Write-Output $accessToken.access_token
 
-$result = Invoke-RestMethod "https://graph.microsoft.com/v1.0/organization" -Headers @{Authorization = "Bearer $($accessToken.access_token)"}
-$result.value | Select-Object createdDateTime 
+$result = Invoke-RestMethod "https://graph.microsoft.com/v1.0/organization" -Headers @{Authorization = "Bearer $($accessToken.access_token)" }
+
+[PSCustomObject]@{
+    # Adjust the below array according to your environment
+    CustomDomain               = $result.value.verifiedDomains.Name[2]
+    onPremisesSyncEnabled      = $result.value.onPremisesSyncEnabled
+    onPremisesLastSyncDateTime = $result.value.onPremisesLastSyncDateTime  
+    countryCode                = $result.value.countryLetterCode
+}
+
+
 ```
 
