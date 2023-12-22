@@ -204,8 +204,7 @@ $accessToken = Invoke-RestMethod -Method Post -Uri $tokenEndpoint -Body $tokenPa
 $result = Invoke-RestMethod "https://graph.microsoft.com/v1.0/organization" -Headers @{Authorization = "Bearer $($accessToken.access_token)" }
 
 [PSCustomObject]@{
-    # Adjust the below array according to your environment
-    CustomDomain               = $result.value.verifiedDomains.Name[2]
+    CustomDomain               = $result.value.verifiedDomains.Name
     onPremisesSyncEnabled      = $result.value.onPremisesSyncEnabled
     onPremisesLastSyncDateTime = $result.value.onPremisesLastSyncDateTime  
     countryCode                = $result.value.countryLetterCode
