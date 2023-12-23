@@ -215,5 +215,5 @@ $result = Invoke-RestMethod "https://graph.microsoft.com/v1.0/organization" -Hea
 ```
 
 #### Output
-<img src="https://github.com/21bshwjt/MicrosoftGraph/blob/main/Screenshots/customdomain.png?raw=true" width="800" height="150">
+<img src="https://github.com/21bshwjt/MicrosoftGraph/blob/main/Screenshots/customdomain.png?raw=true" width="800" height="125">
 
