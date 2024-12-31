@@ -216,3 +216,71 @@ $result = Invoke-RestMethod "https://graph.microsoft.com/v1.0/organization" -Hea
 #### Output
 <img src="https://github.com/21bshwjt/MicrosoftGraph/blob/main/Screenshots/customdomain.png?raw=true" width="800" height="125">
 
+### Authentication using SPN & Certificate
+```powershell
+function New-JwtToken {
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$ClientId,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$TenantId
+    )
+
+    $header = @{
+        alg = "RS256"
+        typ = "JWT"
+        x5t = [System.Convert]::ToBase64String($Certificate.GetCertHash())
+    }
+
+    $claims = @{
+        aud = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
+        iss = $ClientId
+        sub = $ClientId
+        jti = [System.Guid]::NewGuid().ToString()
+        exp = [System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds() + 3600
+        nbf = [System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    }
+
+    $encodedHeader = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $header -Compress)))
+    $encodedClaims = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $claims -Compress)))
+    $unsignedToken = "$encodedHeader.$encodedClaims"
+    
+    $rsaProvider = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($Certificate)
+    $signatureBytes = $rsaProvider.SignData([System.Text.Encoding]::UTF8.GetBytes($unsignedToken), [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    $signature = [System.Convert]::ToBase64String($signatureBytes)
+    
+    return "$unsignedToken.$signature"
+}
+# Enter Your TenantID, ClientID & Thumbprint
+$tenantId = ""
+$clientId = ""
+$certificateThumbprint = ""
+
+# Define API endpoint and parameters
+$tokenEndpoint = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token"
+$tokenParams = @{
+    grant_type = "client_credentials"
+    client_id  = $clientId
+    scope      = "https://graph.microsoft.com/.default"
+}
+
+# Get the certificate
+$cert = Get-Item -Path "Cert:\LocalMachine\My\$certificateThumbprint"
+
+# Get access token
+$tokenParams["client_assertion"] = New-JwtToken -Certificate $cert -ClientId $clientId -TenantId $tenantId
+$tokenParams["client_assertion_type"] = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+
+$accessToken = Invoke-RestMethod -Method Post -Uri $tokenEndpoint -Body $tokenParams
+
+# Output access token
+Write-Output $accessToken.access_token
+
+Invoke-RestMethod "https://graph.microsoft.com/v1.0/users" -Headers @{Authorization = "Bearer $($accessToken.access_token)" }
+```
+
+
