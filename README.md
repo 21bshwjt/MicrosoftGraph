@@ -181,6 +181,7 @@ $result.value | Select-Object id,displayName,userPrincipalName
 ### Get Tenant Creation Date Using PowerShell
 
 ```powershell
+# MSFT Graph API : https://learn.microsoft.com/en-us/graph/api/organization-list?view=graph-rest-1.0&tabs=http
 # Define variables
 $tenantId = "************************"
 $clientId = "************************"
