@@ -283,5 +283,110 @@ Write-Output $accessToken.access_token
 
 Invoke-RestMethod "https://graph.microsoft.com/v1.0/users" -Headers @{Authorization = "Bearer $($accessToken.access_token)" }
 ```
+### Multi-Tenant Organization (B2B)
+```powershell
+# 38. Multi Tenant Org. & B2B Partners
+#region Authentication & Authorization
+$Token = "*******************"
+#endregion
+
+#region Generic Variables
+$BaseApi = 'https://graph.microsoft.com'
+$ApiVersion = 'v1.0'
+$Endpoint = '/policies/crossTenantAccessPolicy/partners'
+
+$Uri = "{0}/{1}{2}" -f $BaseApi, $ApiVersion, $Endpoint
+
+$Headers = @{
+    'Authorization' = "Bearer $Token"
+    'Content-Type'  = 'application/json'
+}
+
+$RequestProperties = @{
+    Uri     = $Uri
+    Method  = 'GET'
+    Headers = $Headers
+}
+#endregion
+
+#region Get Partner Info
+try {
+    $Get_Partners = Invoke-RestMethod @RequestProperties
+    $RawResults = $Get_Partners.value
+}
+catch {
+    Write-Error "Failed to retrieve B2B partner data: $_"
+    return
+}
+
+# Flatten the results
+$HTMLResult = foreach ($partner in $RawResults) {
+    [PSCustomObject]@{
+        Partner_TenantId               = $partner.tenantId
+        IsServiceProvider              = $partner.isServiceProvider
+        IsInMultiTenantOrganization    = $partner.isInMultiTenantOrganization
+
+        # Consent
+        Consent_InboundAllowed         = $partner.automaticUserConsentSettings?.inboundAllowed
+        Consent_OutboundAllowed        = $partner.automaticUserConsentSettings?.outboundAllowed
+
+        # Inbound Trust
+        TrustMFA                       = $partner.inboundTrust?.isMfaAccepted
+        TrustCompliantDevice           = $partner.inboundTrust?.isCompliantDeviceAccepted
+        TrustHybridJoinedDevice        = $partner.inboundTrust?.isHybridAzureADJoinedDeviceAccepted
+
+        # B2B Inbound Collaboration
+        B2BInbound_AllowApps           = ($partner.b2bCollaborationInbound?.accessSettings?.application?.targets | ForEach-Object { $_.target }) -join ', '
+        B2BInbound_BlockApps           = ($partner.b2bCollaborationInbound?.accessSettings?.application?.exclusions | ForEach-Object { $_.target }) -join ', '
+
+        # B2B Outbound Collaboration
+        B2BOutbound_AllowApps          = ($partner.b2bCollaborationOutbound?.accessSettings?.application?.targets | ForEach-Object { $_.target }) -join ', '
+        B2BOutbound_BlockApps          = ($partner.b2bCollaborationOutbound?.accessSettings?.application?.exclusions | ForEach-Object { $_.target }) -join ', '
+
+        # Direct Connect
+        DirectConnect_Inbound_Enabled  = $partner.b2bDirectConnectInbound?.isEnabled
+        DirectConnect_Outbound_Enabled = $partner.b2bDirectConnectOutbound?.isEnabled
+
+
+    }
+}
+#endregion
+
+#region HTML & Excel Output
+$Ps1FileName = $($MyInvocation.MyCommand.Name)
+$DirName = ($Ps1FileName -split "_")[0]
+$HtmFileName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
+
+# Ensure output directory exists
+$OutputDir = ".\Output\$DirName"
+if (!(Test-Path $OutputDir)) {
+    [void](New-Item -ItemType Directory -Path $OutputDir -Force)
+}
+
+# Set title from comment
+$FirstLine = Get-Content $MyInvocation.MyCommand.Path | Select-Object -First 1
+$Title = $FirstLine -replace '^#\s*\d+\.\s*', ''
+$date = (Get-Date).ToString('MM-dd-yyyy')
+$headertxt = "<H2><Center>$Title | $date </Center></H2>"
+
+# Generate HTML Report
+New-HTML -TitleText $Title {
+    New-HTMLContent -HeaderText "<center>$headertxt</center>" {
+        New-HTMLTable -Title $Title -DataTable $HTMLResult -HideFooter -PagingOptions @(100, 200, 300) {
+        }
+    }
+} -FilePath "$OutputDir\$HtmFileName.htm"
+
+# Export to Excel
+if ($HTMLResult) {
+    $HTMLResult | Export-Excel -Path ".\Output\Entra_Posture_Management.xlsx" -WorksheetName $HtmFileName -AutoSize -TableStyle Medium21
+}
+else {
+    Write-Host "No data to export to Excel." -ForegroundColor Yellow
+}
+#endregion
+
+```
+
 
 
