@@ -387,6 +387,106 @@ else {
 #endregion
 
 ```
+### Email via Graph API - App Based Auth
+```powershell
+# Define your app details
+# Mail.Send under "Application" type is listed
+$tenantId = ""
+$clientId = ""
+$clientSecret = ""
+$sender = ""
+$recipient = ""
+
+# Get a token
+$body = @{
+    grant_type    = "client_credentials"
+    scope         = "https://graph.microsoft.com/.default"
+    client_id     = $clientId
+    client_secret = $clientSecret
+}
+
+$tokenResponse = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
+$accessToken = $tokenResponse.access_token
+
+# Step 1: Define table data
+$tableData = @(
+    @{ Name = "Alice Smith"; Department = "IT"; Status = "Active" },
+    @{ Name = "Bob Johnson"; Department = "Finance"; Status = "Inactive" },
+    @{ Name = "Charlie Brown"; Department = "HR"; Status = "Active" }
+)
+
+# Step 2: Generate HTML table rows
+$htmlRows = foreach ($row in $tableData) {
+    "<tr><td>$($row.Name)</td><td>$($row.Department)</td><td>$($row.Status)</td></tr>"
+} -join "`n"
+
+# Step 3: Define the main email body with table rows injected
+$emailBody = @{
+    message         = @{
+        subject      = "📧 Email via Graph API - App Based Auth"
+        body         = @{
+            contentType = "HTML"
+            content     = @"
+<html>
+<head>
+  <style>
+    body { font-family: Segoe UI, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333; }
+    .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h2 { color: #0078D4; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    th { background-color: #0078D4; color: white; }
+    tr:nth-child(even) { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Hello,</h2>
+    <p>This message was sent using <strong>Microsoft Graph API</strong> with <em>app-only authentication</em>.</p>
+
+    <table>
+      <tr>
+        <th>Name</th>
+        <th>Department</th>
+        <th>Status</th>
+      </tr>
+      $htmlRows
+    </table>
+
+    <p style="margin-top:20px;">Regards,<br/>Graph API Bot</p>
+  </div>
+</body>
+</html>
+"@
+        }
+        toRecipients = @(
+            @{
+                emailAddress = @{
+                    address = $recipient
+                }
+            }
+        )
+        from         = @{
+            emailAddress = @{
+                address = $sender
+            }
+        }
+    }
+    saveToSentItems = "false"
+} | ConvertTo-Json -Depth 10
+
+
+
+# Send the email
+$response = Invoke-RestMethod -Method POST `
+    -Uri "https://graph.microsoft.com/v1.0/users/$sender/sendMail" `
+    -Headers @{ Authorization = "Bearer $accessToken" } `
+    -Body $emailBody `
+    -ContentType "application/json"
+$response
+Write-Host "Email sent successfully." -ForegroundColor Green
+
+```
 
 
 
