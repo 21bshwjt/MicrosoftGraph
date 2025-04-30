@@ -391,11 +391,11 @@ else {
 ```powershell
 # Define your app details
 # Mail.Send under "Application" type is listed
-$tenantId = ""
-$clientId = ""
-$clientSecret = ""
-$sender = ""
-$recipient = ""
+$tenantId = "" # Your Tenant ID
+$clientId = "" # Your Application ID
+$clientSecret = "" # App Secret
+$sender = "" # Sender Email
+$recipient = "" # Recipient Email
 
 # Get a token
 $body = @{
