@@ -702,6 +702,22 @@ Write-Host "Script ended at:   $EndTime UTC"
 Write-Host "Total duration:    $($Duration.ToString())"
 
 ```
+### Connect-MgGraph With App & Secret
+```powershell
+$ApplicationId = ""
+$TenantId = ""
+$ClientSecret = ""
+
+# Secure the Client Secret
+$ClientSecretSecure = $ClientSecret | ConvertTo-SecureString -AsPlainText -Force
+$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ApplicationId, $ClientSecretSecure
+
+# Connect to Microsoft Graph
+Connect-MgGraph -TenantId $TenantId -Credential $Credential
+
+# Validate connection
+Get-MgContext
+```
 
 
 
