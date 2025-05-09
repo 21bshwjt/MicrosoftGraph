@@ -600,6 +600,11 @@ Connect-MgGraph -TenantId $TenantId -Credential $Credential
 # Validate connection
 Get-MgContext
 ```
+### Get only top-level keys (property names)
+```powershell
+$user = Get-MgUser -UserId "bshwjt@contoso.com" -Property *
+$user.PSObject.Properties.Name
+```
 
 
 
