@@ -121,7 +121,7 @@ Connect-MgGraph -TenantId $tenantID -ClientSecretCredential $ClientSecretCredent
 Get-MgUser | Select-Object DisplayName, Id, UserPrincipalName
 ```
 
-### Certificate based authentication using Service principle name
+### Graph SDK - Certificate based authentication using Service principle name
 
 ```powershell
 # Permissions are needed as per the above screenshot. 
@@ -217,7 +217,7 @@ $result = Invoke-RestMethod "https://graph.microsoft.com/v1.0/organization" -Hea
 #### Output
 <img src="https://github.com/21bshwjt/MicrosoftGraph/blob/main/Screenshots/customdomain.png?raw=true" width="800" height="125">
 
-### Authentication using SPN & Certificate
+### Authentication using SPN & Certificate 
 ```powershell
 function New-JwtToken {
     param (
