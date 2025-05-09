@@ -37,8 +37,8 @@ $result.value | Select-Object id,userPrincipalName
 #### Above permissions are needed for that Application to work all the scripts mentioned here.
 - [**scope**](https://graph.microsoft.com/.default) uri is needed to query the AAD users & [**resource**](https://management.core.windows.net) uri is needed to query the AZ resources.
 - Authorization endpoint is not needed when "**grant_type**" is  "**client_credentials**". The token endpoint is only needed. **Token type: Access_Token**
-- Token Endpoint (V1) : [https://login.microsoftonline.com/<tenant_Id>/oauth2/token](https://login.microsoftonline.com/<tenant_Id>/oauth2/token) - Use that for AZ Resouces
-- Token Endpoint (V2) : [https://login.microsoftonline.com/<tenant_Id>/oauth2/v2.0/token](https://login.microsoftonline.com/<tenant_Id>/oauth2/v2.0/token) - Use that for AAD Users
+- Token Endpoint (V1) : [https://login.microsoftonline.com/<tenant_Id>/oauth2/token](https://login.microsoftonline.com/<tenant_Id>/oauth2/token) - Use that for Azure Resouces
+- Token Endpoint (V2) : [https://login.microsoftonline.com/<tenant_Id>/oauth2/v2.0/token](https://login.microsoftonline.com/<tenant_Id>/oauth2/v2.0/token) - Use that for Entra ID
 
 ```powershell
 <##
