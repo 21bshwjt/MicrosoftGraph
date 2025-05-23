@@ -605,6 +605,9 @@ Get-MgContext
 $user = Get-MgUser -UserId "bshwjt@contoso.com" -Property *
 $user.PSObject.Properties.Name
 ```
-
+### Get onPremisesExtensionAttributes
+```powershell
+https://graph.microsoft.com/v1.0/users?$select=displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,userType,createdDateTime,lastModifiedDateTime,telephoneNumber,physicalDeliveryOfficeName,city,state,country,companyName,employeeId,streetAddress,mobilePhone,preferredLanguage,onPremisesSyncEnabled,onPremisesDistinguishedName,onPremisesImmutableId,onPremisesExtensionAttributes
+```
 
 
