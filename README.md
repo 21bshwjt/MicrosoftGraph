@@ -609,5 +609,44 @@ $user.PSObject.Properties.Name
 ```powershell
 https://graph.microsoft.com/v1.0/users?$select=displayName,userPrincipalName,mail,jobTitle,department,accountEnabled,userType,createdDateTime,lastModifiedDateTime,telephoneNumber,physicalDeliveryOfficeName,city,state,country,companyName,employeeId,streetAddress,mobilePhone,preferredLanguage,onPremisesSyncEnabled,onPremisesDistinguishedName,onPremisesImmutableId,onPremisesExtensionAttributes
 ```
+### Get Custom Attributes
+```powershell
+# Cmdlet: Get-MgDirectoryObjectAvailableExtensionProperty
+#region Authentication & Authorization
+. ".\AuthN_AuthZ.ps1"
+#endregion
 
+#region Generic Variables
+$BaseApi = 'https://graph.microsoft.com'
+$ApiVersion = 'v1.0'
+$Endpoint = "/directoryObjects/microsoft.graph.getAvailableExtensionProperties"
+
+$Uri = "{0}/{1}{2}" -f $BaseApi, $ApiVersion, $Endpoint
+
+$Headers = @{
+    'Authorization' = 'Bearer ' + $accessToken
+    'Content-Type'  = 'application/json'
+}
+
+# Body is required even if minimal
+$Body = @{
+    isSyncedFromOnPremises = $false  # Set to true if you only want synced extension properties
+} | ConvertTo-Json
+
+$RequestProperties = @{
+    Uri     = $Uri
+    Method  = 'POST'  # Must be POST
+    Headers = $Headers
+    Body    = $Body
+}
+#endregion
+
+#region Invoke-RestMethod
+$Response = Invoke-RestMethod @RequestProperties
+$Response.value.Name | Sort-Object | ForEach-Object {
+    Write-Host $_ -ForegroundColor Magenta
+}
+#endregion
+
+```
 
