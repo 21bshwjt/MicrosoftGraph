@@ -652,6 +652,7 @@ $Response.value.Name | Sort-Object | ForEach-Object {
 ### Evaluate Entra Conditional Access Policy
 ```powershell
 # Permissions: Directory.Read.All & Policy.Read.All
+# KB: https://learn.microsoft.com/en-us/graph/api/conditionalaccessroot-evaluate?view=graph-rest-beta
 # Step 1: Get access token
 $tenantId = ""
 $clientId = ""
