@@ -649,4 +649,53 @@ $Response.value.Name | Sort-Object | ForEach-Object {
 #endregion
 
 ```
+### Evaluate Entra Conditional Access Policy
+```powershell
+# Permissions: Directory.Read.All & Policy.Read.All
+# Step 1: Get access token
+$tenantId = ""
+$clientId = ""
+$clientSecret = ""
+
+# Step 1: Get access token
+$scope = "https://graph.microsoft.com/.default"
+$tokenResponse = Invoke-RestMethod -Method POST -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body @{
+    grant_type    = "client_credentials"
+    client_id     = $clientId
+    client_secret = $clientSecret
+    scope         = $scope
+}
+$accessToken = $tokenResponse.access_token
+
+# Step 2: Define What-If Evaluation Body
+$body = @{
+    signInIdentity      = @{
+        "@odata.type" = "#microsoft.graph.userSignIn"
+        userId        = "b23b252e-0f36-4d56-9538-03fcd97e8805"  # Replace with real user objectId
+    }
+    signInContext       = @{
+        "@odata.type"       = "#microsoft.graph.applicationContext"
+        includeApplications = @("00000003-0000-0000-c000-000000000000")  # Example: Microsoft Graph SPN
+    }
+    signInConditions    = @{
+        clientAppType   = "browser"         # Options: browser, mobileAppsAndDesktopClients, etc.
+        ipAddress       = "203.0.113.10"
+        signInRiskLevel = "low"
+        userRiskLevel   = "none"
+        devicePlatform  = "windows"
+        country         = "IN"
+    }
+    appliedPoliciesOnly = $true
+} | ConvertTo-Json -Depth 6
+
+# Step 3: Call the /evaluate endpoint
+$uri = "https://graph.microsoft.com/beta/identity/conditionalAccess/evaluate"
+$response = Invoke-RestMethod -Method POST -Uri $uri -Headers @{
+    Authorization  = "Bearer $accessToken"
+    "Content-Type" = "application/json"
+} -Body $body
+
+# Step 4: Output evaluation results
+$response.value 
+```
 
