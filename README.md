@@ -658,28 +658,30 @@ $tenantId = ""
 $clientId = ""
 $clientSecret = ""
 
-# Step 1: Get access token
-$scope = "https://graph.microsoft.com/.default"
+$userObjectId = "b23b252e-0f36-4d56-9538-03fcd97e8805"  # Replace with actual user object ID
+$appObjectId = "00000003-0000-0000-c000-000000000000"  # Replace with app's service principal ID (e.g., Graph)
+
+# ========== GET ACCESS TOKEN ==========
 $tokenResponse = Invoke-RestMethod -Method POST -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body @{
     grant_type    = "client_credentials"
     client_id     = $clientId
     client_secret = $clientSecret
-    scope         = $scope
+    scope         = "https://graph.microsoft.com/.default"
 }
 $accessToken = $tokenResponse.access_token
 
-# Step 2: Define What-If Evaluation Body
+# ========== BUILD EVALUATION REQUEST BODY ==========
 $body = @{
     signInIdentity      = @{
         "@odata.type" = "#microsoft.graph.userSignIn"
-        userId        = "b23b252e-0f36-4d56-9538-03fcd97e8805"  # Replace with real user objectId
+        userId        = $userObjectId
     }
     signInContext       = @{
         "@odata.type"       = "#microsoft.graph.applicationContext"
-        includeApplications = @("00000003-0000-0000-c000-000000000000")  # Example: Microsoft Graph SPN
+        includeApplications = @($appObjectId)
     }
     signInConditions    = @{
-        clientAppType   = "browser"         # Options: browser, mobileAppsAndDesktopClients, etc.
+        clientAppType   = "browser"
         ipAddress       = "203.0.113.10"
         signInRiskLevel = "low"
         userRiskLevel   = "none"
@@ -689,14 +691,59 @@ $body = @{
     appliedPoliciesOnly = $true
 } | ConvertTo-Json -Depth 6
 
-# Step 3: Call the /evaluate endpoint
+# ========== CALL THE EVALUATE API ==========
 $uri = "https://graph.microsoft.com/beta/identity/conditionalAccess/evaluate"
 $response = Invoke-RestMethod -Method POST -Uri $uri -Headers @{
     Authorization  = "Bearer $accessToken"
     "Content-Type" = "application/json"
 } -Body $body
 
-# Step 4: Output evaluation results
-$response.value 
+# ========== DISPLAY RESULTS ==========
+function Show-CAEvaluationResult {
+    param (
+        [Parameter(Mandatory)]
+        $Policy
+    )
+
+    Write-Host "`n===================================" -ForegroundColor Cyan
+    Write-Host "Policy Name:      $($Policy.displayName)"
+    Write-Host "Policy Applies:   $($Policy.policyApplies)"
+    Write-Host "Analysis Reason:  $($Policy.analysisReasons)"
+
+    Write-Host "`n--- Conditions ---" -ForegroundColor Yellow
+    $c = $Policy.conditions
+    if ($c) {
+        Write-Host "User Risk Levels:        $($c.userRiskLevels -join ', ')"
+        Write-Host "Sign-in Risk Levels:     $($c.signInRiskLevels -join ', ')"
+        Write-Host "Client App Types:        $($c.clientAppTypes -join ', ')"
+        if ($c.platforms) {
+            Write-Host "Platforms:               $($c.platforms.includePlatforms -join ', ')"
+        }
+        if ($c.locations) {
+            Write-Host "Locations:               $($c.locations.includeLocations -join ', ')"
+        }
+    }
+
+    Write-Host "`n--- Grant Controls ---" -ForegroundColor Yellow
+    $g = $Policy.grantControls
+    if ($g) {
+        Write-Host "Operator:                $($g.operator)"
+        Write-Host "Built-in Controls:       $($g.builtInControls -join ', ')"
+        Write-Host "Custom Auth Factors:     $($g.customAuthenticationFactors -join ', ')"
+        Write-Host "Terms of Use:            $($g.termsOfUse -join ', ')"
+        if ($g.authenticationStrength) {
+            Write-Host "Authentication Strength: $($g.authenticationStrength.displayName)"
+        }
+    }
+
+    Write-Host "===================================" -ForegroundColor Cyan
+}
+
+# ========== LOOP THROUGH EACH POLICY ==========
+foreach ($policy in $response.value) {
+    Show-CAEvaluationResult -Policy $policy
+}
+
+
 ```
 
