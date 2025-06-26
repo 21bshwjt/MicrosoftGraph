@@ -584,7 +584,7 @@ $response
 Write-Host "✅ Email sent successfully." -ForegroundColor Green
 
 ```
-### Connect-MgGraph With App & Secret
+### Connect-MgGraph With App & Secret - SDK
 ```powershell
 $ApplicationId = ""
 $TenantId = ""
@@ -600,8 +600,11 @@ Connect-MgGraph -TenantId $TenantId -Credential $Credential
 # Validate connection
 Get-MgContext
 ```
-### Get only top-level keys (property names)
+### Entra ID - Get Extension Attributes - SDK 
 ```powershell
+(Get-MgUser -UserId "UPN" -Property extension_46a8f918361f4d8fb5e505453a0e21a8_msDS_cloudExtensionAttribute1).AdditionalProperties
+
+# Get only top-level keys (property names)
 $user = Get-MgUser -UserId "bshwjt@contoso.com" -Property *
 $user.PSObject.Properties.Name
 ```
