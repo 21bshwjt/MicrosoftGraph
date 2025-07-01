@@ -747,6 +747,9 @@ foreach ($policy in $response.value) {
     Show-CAEvaluationResult -Policy $policy
 }
 
-
+```
+### How to find Tenant ID
+```powershell
+Invoke-RestMethod -Uri "https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=contoso.com"
 ```
 
