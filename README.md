@@ -753,3 +753,130 @@ foreach ($policy in $response.value) {
 Invoke-RestMethod -Uri "https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=contoso.com"
 ```
 
+### User Password Reset
+```powershell
+<# 
+Graph API Version: v1.0
+Permissions: 'User Administrator' Role & 'User.ReadWrite.All' (SPN Application permission with Admin Consent)
+Note: Not Delegated Permission
+Author: 
+Date: 22-April-2026
+#>
+
+<#
+Reset Password - Single User
+#>
+#region Authentication & Authorization
+. ".\AuthN_AuthZ.ps1"
+#endregion
+
+$userId = "user@test.onmicrosoft.com"  # or use Object ID
+$newPassword = "****" # Hard coded the password & tested with 12 charector password
+
+$headers = @{
+    "Authorization" = "Bearer $accessToken"
+    "Content-Type"  = "application/json"
+}
+
+$body = @{
+    passwordProfile = @{
+        # Set it to $false if you don't want to force a password change at next logon.
+        forceChangePasswordNextSignIn = $true # or $false
+        password                      = $newPassword
+    }
+} | ConvertTo-Json -Depth 3
+
+Invoke-RestMethod -Method Patch `
+    -Uri "https://graph.microsoft.com/v1.0/users/$userId" `
+    -Headers $headers `
+    -Body $body
+```
+
+###  Revoke all active sessions
+```powershell
+###  Revoke all active sessions
+<# 
+Author: 
+Description: Revoke all active sessions for a single Entra ID user
+#>
+
+#region Authentication
+. ".\AuthN_AuthZ.ps1"
+#endregion
+
+# Normalize access token (handle object vs string)
+if ($accessToken -is [System.Management.Automation.PSCustomObject]) {
+    $accessToken = $accessToken.access_token
+}
+
+# Validate Access Token
+if (-not $accessToken -or $accessToken.Split(".").Count -ne 3) {
+    throw "Invalid or missing access token. Check AuthN_AuthZ.ps1"
+}
+
+# Input
+$userId = "biswajit@contoso.onmicrosoft.com"
+
+# Headers
+$headers = @{
+    Authorization = "Bearer $accessToken"
+    "Content-Type" = "application/json"
+}
+
+# Validate user exists
+try {
+    Invoke-RestMethod -Method GET `
+        -Uri "https://graph.microsoft.com/v1.0/users/$userId" `
+        -Headers $headers `
+        -ErrorAction Stop
+}
+catch {
+    Write-Error "User not found or not accessible: $userId"
+    return
+}
+
+# Revoke sessions
+try {
+    Invoke-RestMethod -Method POST `
+        -Uri "https://graph.microsoft.com/v1.0/users/$userId/revokeSignInSessions" `
+        -Headers $headers `
+        -ErrorAction Stop
+
+    Write-Host "Active sessions revoked successfully for $userId" -ForegroundColor Green
+}
+catch {
+    Write-Warning ("Failed to revoke sessions for {0}. Error: {1}" -f $userId, $_.Exception.Message)
+
+    if ($_.ErrorDetails.Message) {
+        Write-Host "Graph Error Details:" -ForegroundColor Yellow
+        Write-Host $_.ErrorDetails.Message
+    }
+}
+
+```
+### Disable an user
+```powershell
+$Uri = "https://graph.microsoft.com/v1.0/users/$UserId"
+
+$Body = @{
+    accountEnabled = $false
+} | ConvertTo-Json
+
+Write-Host "Disabling user: $UserId"
+Write-Host $Uri
+
+try {
+    Invoke-RestMethod `
+        -Method PATCH `
+        -Uri $Uri `
+        -Headers $Headers `
+        -Body $Body
+
+    Write-Host "✅ User disabled successfully"
+}
+catch {
+    Write-Host "❌ Failed to disable user" -ForegroundColor Red
+    Write-Host $_
+}
+```
+
