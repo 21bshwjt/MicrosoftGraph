@@ -879,4 +879,349 @@ catch {
     Write-Host $_
 }
 ```
+### Global Admins - Audit
+```powershell
+# Global Administrator Audit - Final (Users + SPN + Full Summary)
+
+#region Authentication
+. ".\AuthN_AuthZ.ps1"
+#endregion
+
+$BaseApi = 'https://graph.microsoft.com'
+$ApiVersion = 'v1.0'
+
+$Headers = @{
+    Authorization  = "Bearer $Token"
+    'Content-Type' = 'application/json'
+}
+
+$GlobalAdminId = "62e90394-69f5-4237-9190-012177145e10"
+
+$Results = @()
+$UserIds = @{}
+$SPNIds = @{}
+
+# =========================
+# 🔹 ACTIVE ASSIGNMENTS
+# =========================
+$Uri = "$BaseApi/$ApiVersion/roleManagement/directory/roleAssignments?`$filter=roleDefinitionId eq '$GlobalAdminId'"
+
+while ($Uri) {
+
+    $Response = Invoke-RestMethod -Uri $Uri -Headers $Headers -Method GET
+
+    foreach ($Item in $Response.value) {
+
+        $Principal = $null
+        try {
+            $Principal = Invoke-RestMethod -Uri "$BaseApi/$ApiVersion/directoryObjects/$($Item.principalId)" -Headers $Headers
+        }
+        catch {
+            continue
+        }
+
+        $type = $Principal.'@odata.type'
+
+        $MemberType = if ($type -match 'user') { "User" }
+        elseif ($type -match 'group') { "Group" }
+        elseif ($type -match 'servicePrincipal') { "SPN" }
+        else { "Other" }
+
+        if ($MemberType -eq "User") { $UserIds[$Item.principalId] = $true }
+        if ($MemberType -eq "SPN") { $SPNIds[$Item.principalId] = $true }
+
+        $Results += [PSCustomObject]@{
+            AssignmentType    = "Active-Direct"
+            PrincipalType     = $MemberType
+            Id                = $Item.principalId
+            DisplayName       = $Principal.displayName
+            UserPrincipalName = $Principal.userPrincipalName
+            AppId             = $Principal.appId
+            GroupName         = ""
+        }
+
+        # Group expansion
+        if ($MemberType -eq "Group") {
+
+            $GroupUri = "$BaseApi/$ApiVersion/groups/$($Item.principalId)/members"
+
+            while ($GroupUri) {
+
+                $GroupResponse = Invoke-RestMethod -Uri $GroupUri -Headers $Headers -Method GET
+
+                foreach ($gm in $GroupResponse.value) {
+
+                    $gtype = $gm.'@odata.type'
+                    if (-not $gtype) {
+                        try {
+                            $PrincipalDetail = Invoke-RestMethod -Uri "$BaseApi/$ApiVersion/directoryObjects/$($gm.id)" -Headers $Headers
+                            $gtype = $PrincipalDetail.'@odata.type'
+                        }
+                        catch {}
+                    }
+
+                    $gmType = if ($gtype -match 'user') { "User" }
+                    elseif ($gtype -match 'group') { "Group" }
+                    elseif ($gtype -match 'servicePrincipal|application') { "SPN" }
+                    else { 
+                        Write-Warning "Unidentified Type (Active-ViaGroup): ID $($gm.id) | Type $gtype"
+                        "Other" 
+                    }
+
+                    if ($gmType -eq "User") { $UserIds[$gm.id] = $true }
+                    if ($gmType -eq "SPN") { $SPNIds[$gm.id] = $true }
+
+                    $Results += [PSCustomObject]@{
+                        AssignmentType    = "Active-ViaGroup"
+                        PrincipalType     = $gmType
+                        Id                = $gm.id
+                        DisplayName       = $gm.displayName
+                        UserPrincipalName = $gm.userPrincipalName
+                        AppId             = $gm.appId
+                        GroupName         = $Principal.displayName
+                    }
+                }
+
+                $GroupUri = $GroupResponse.'@odata.nextLink'
+            }
+
+            try {
+                $SpnGroupUri = "$BaseApi/$ApiVersion/groups/$($Item.principalId)/members/microsoft.graph.servicePrincipal"
+                while ($SpnGroupUri) {
+                    $SpnResp = Invoke-RestMethod -Uri $SpnGroupUri -Headers $Headers -Method GET
+                    foreach ($spn in $SpnResp.value) {
+                        $exists = $Results | Where-Object { $_.Id -eq $spn.id -and $_.GroupName -eq $Principal.displayName -and $_.AssignmentType -eq "Active-ViaGroup" }
+                        if (-not $exists) {
+                            $SPNIds[$spn.id] = $true
+                            $Results += [PSCustomObject]@{
+                                AssignmentType    = "Active-ViaGroup"
+                                PrincipalType     = "SPN"
+                                Id                = $spn.id
+                                DisplayName       = $spn.displayName
+                                UserPrincipalName = $spn.userPrincipalName
+                                AppId             = $spn.appId
+                                GroupName         = $Principal.displayName
+                            }
+                        }
+                    }
+                    $SpnGroupUri = $SpnResp.'@odata.nextLink'
+                }
+            }
+            catch {}
+        }
+    }
+
+    $Uri = $Response.'@odata.nextLink'
+}
+
+# =========================
+# 🔹 ELIGIBLE ASSIGNMENTS
+# =========================
+$EligibleUri = "$BaseApi/$ApiVersion/roleManagement/directory/roleEligibilitySchedules?`$filter=roleDefinitionId eq '$GlobalAdminId'"
+
+while ($EligibleUri) {
+
+    $Response = Invoke-RestMethod -Uri $EligibleUri -Headers $Headers -Method GET
+
+    foreach ($Item in $Response.value) {
+
+        $Principal = Invoke-RestMethod -Uri "$BaseApi/$ApiVersion/directoryObjects/$($Item.principalId)" -Headers $Headers
+
+        $ptype = $Principal.'@odata.type'
+
+        $PrincipalType = if ($ptype -match 'user') { "User" }
+        elseif ($ptype -match 'group') { "Group" }
+        elseif ($ptype -match 'servicePrincipal') { "SPN" }
+        else { "Other" }
+
+        if ($PrincipalType -eq "User") { $UserIds[$Item.principalId] = $true }
+        if ($PrincipalType -eq "SPN") { $SPNIds[$Item.principalId] = $true }
+
+        $Results += [PSCustomObject]@{
+            AssignmentType    = "Eligible-Direct"
+            PrincipalType     = $PrincipalType
+            Id                = $Item.principalId
+            DisplayName       = $Principal.displayName
+            UserPrincipalName = $Principal.userPrincipalName
+            AppId             = $Principal.appId
+            GroupName         = ""
+        }
+
+        # Group expansion (Eligible)
+        if ($PrincipalType -eq "Group") {
+
+            $GroupUri = "$BaseApi/$ApiVersion/groups/$($Item.principalId)/members"
+
+            while ($GroupUri) {
+
+                $GroupResponse = Invoke-RestMethod -Uri $GroupUri -Headers $Headers -Method GET
+
+                foreach ($gm in $GroupResponse.value) {
+
+                    $gtype = $gm.'@odata.type'
+                    if (-not $gtype) {
+                        try {
+                            $PrincipalDetail = Invoke-RestMethod -Uri "$BaseApi/$ApiVersion/directoryObjects/$($gm.id)" -Headers $Headers
+                            $gtype = $PrincipalDetail.'@odata.type'
+                        }
+                        catch {}
+                    }
+
+                    $gmType = if ($gtype -match 'user') { "User" }
+                    elseif ($gtype -match 'group') { "Group" }
+                    elseif ($gtype -match 'servicePrincipal|application') { "SPN" }
+                    else { 
+                        Write-Warning "Unidentified Type (Eligible-ViaGroup): ID $($gm.id) | Type $gtype"
+                        "Other" 
+                    }
+
+                    if ($gmType -eq "User") { $UserIds[$gm.id] = $true }
+                    if ($gmType -eq "SPN") { $SPNIds[$gm.id] = $true }
+
+                    $Results += [PSCustomObject]@{
+                        AssignmentType    = "Eligible-ViaGroup"
+                        PrincipalType     = $gmType
+                        Id                = $gm.id
+                        DisplayName       = $gm.displayName
+                        UserPrincipalName = $gm.userPrincipalName
+                        AppId             = $gm.appId
+                        GroupName         = $Principal.displayName
+                    }
+                }
+
+                $GroupUri = $GroupResponse.'@odata.nextLink'
+            }
+
+            try {
+                $SpnGroupUri = "$BaseApi/$ApiVersion/groups/$($Item.principalId)/members/microsoft.graph.servicePrincipal"
+                while ($SpnGroupUri) {
+                    $SpnResp = Invoke-RestMethod -Uri $SpnGroupUri -Headers $Headers -Method GET
+                    foreach ($spn in $SpnResp.value) {
+                        $exists = $Results | Where-Object { $_.Id -eq $spn.id -and $_.GroupName -eq $Principal.displayName -and $_.AssignmentType -eq "Eligible-ViaGroup" }
+                        if (-not $exists) {
+                            $SPNIds[$spn.id] = $true
+                            $Results += [PSCustomObject]@{
+                                AssignmentType    = "Eligible-ViaGroup"
+                                PrincipalType     = "SPN"
+                                Id                = $spn.id
+                                DisplayName       = $spn.displayName
+                                UserPrincipalName = $spn.userPrincipalName
+                                AppId             = $spn.appId
+                                GroupName         = $Principal.displayName
+                            }
+                        }
+                    }
+                    $SpnGroupUri = $SpnResp.'@odata.nextLink'
+                }
+            }
+            catch {}
+        }
+    }
+
+    $EligibleUri = $Response.'@odata.nextLink'
+}
+
+# =========================
+# 🔹 USER LOOKUP (BATCH)
+# =========================
+$UserLookup = @{}
+$UserIdList = $UserIds.Keys
+$BatchSize = 15
+
+for ($i = 0; $i -lt $UserIdList.Count; $i += $BatchSize) {
+
+    $batch = $UserIdList[$i..([Math]::Min($i + $BatchSize - 1, $UserIdList.Count - 1))]
+    $filter = ($batch | ForEach-Object { "id eq '$_'" }) -join " or "
+
+    $uri = "$BaseApi/$ApiVersion/users?`$filter=$filter&`$select=id,userPrincipalName"
+    $resp = Invoke-RestMethod -Uri $uri -Headers $Headers -Method GET
+
+    foreach ($u in $resp.value) {
+        $UserLookup[$u.id] = $u
+    }
+}
+
+# =========================
+# 🔹 SPN LOOKUP (BATCH)
+# =========================
+$SPNLookup = @{}
+$SPNIdList = $SPNIds.Keys
+
+for ($i = 0; $i -lt $SPNIdList.Count; $i += $BatchSize) {
+
+    $batch = $SPNIdList[$i..([Math]::Min($i + $BatchSize - 1, $SPNIdList.Count - 1))]
+    $filter = ($batch | ForEach-Object { "id eq '$_'" }) -join " or "
+
+    $uri = "$BaseApi/$ApiVersion/servicePrincipals?`$filter=$filter&`$select=id,appId,displayName"
+    $resp = Invoke-RestMethod -Uri $uri -Headers $Headers -Method GET
+
+    foreach ($spn in $resp.value) {
+        $SPNLookup[$spn.id] = $spn
+    }
+}
+
+# =========================
+# 🔹 ENRICH
+# =========================
+foreach ($r in $Results) {
+
+    if ($r.PrincipalType -eq "User" -and $UserLookup.ContainsKey($r.Id)) {
+        $u = $UserLookup[$r.Id]
+        $r.UserPrincipalName = $u.userPrincipalName
+    }
+
+    if ($r.PrincipalType -eq "SPN" -and $SPNLookup.ContainsKey($r.Id)) {
+        $spn = $SPNLookup[$r.Id]
+        $r.AppId = $spn.appId
+        $r.DisplayName = $spn.displayName
+    }
+}
+
+# =========================
+# 📊 OUTPUT TABLE
+# =========================
+Write-Host "`n========== GLOBAL ADMIN DETAILS ==========" -ForegroundColor Cyan
+
+$Results |
+Sort-Object AssignmentType, PrincipalType, DisplayName |
+Format-Table AssignmentType, PrincipalType, DisplayName, UserPrincipalName, AppId, GroupName -AutoSize
+
+# =========================
+# 📊 SUMMARY (Users + SPN)
+# =========================
+$TotalRecords = $Results.Count
+
+$DirectCount = ($Results | Where-Object { $_.AssignmentType -like "*-Direct" }).Count
+$ViaGroupCount = ($Results | Where-Object { $_.AssignmentType -like "*-ViaGroup" }).Count
+
+$ActiveCount = ($Results | Where-Object { $_.AssignmentType -like "Active-*" }).Count
+$EligibleCount = ($Results | Where-Object { $_.AssignmentType -like "Eligible-*" }).Count
+
+$TotalUniqueUsers = @($Results | Where-Object { $_.PrincipalType -eq "User" } | Select-Object -ExpandProperty Id -Unique).Count
+$ActiveUniqueUsers = @($Results | Where-Object { $_.PrincipalType -eq "User" -and $_.AssignmentType -like "Active-*" } | Select-Object -ExpandProperty Id -Unique).Count
+$EligibleUniqueUsers = @($Results | Where-Object { $_.PrincipalType -eq "User" -and $_.AssignmentType -like "Eligible-*" } | Select-Object -ExpandProperty Id -Unique).Count
+
+$TotalUniqueSPN = @($Results | Where-Object { $_.PrincipalType -eq "SPN" } | Select-Object -ExpandProperty Id -Unique).Count
+$ActiveUniqueSPN = @($Results | Where-Object { $_.PrincipalType -eq "SPN" -and $_.AssignmentType -like "Active-*" } | Select-Object -ExpandProperty Id -Unique).Count
+$EligibleUniqueSPN = @($Results | Where-Object { $_.PrincipalType -eq "SPN" -and $_.AssignmentType -like "Eligible-*" } | Select-Object -ExpandProperty Id -Unique).Count
+
+$TotalUniqueOther = @($Results | Where-Object { $_.PrincipalType -eq "Other" } | Select-Object -ExpandProperty Id -Unique).Count
+
+Write-Host "`n========== GLOBAL ADMIN SUMMARY ==========" -ForegroundColor Cyan
+
+Write-Host "Total Assignments     : $TotalRecords"
+Write-Host "  ├─ Active           : $ActiveCount"
+Write-Host "  └─ Eligible         : $EligibleCount"
+Write-Host "Direct Assignments    : $DirectCount"
+Write-Host "Via Group Memberships : $ViaGroupCount"
+Write-Host "Unique Users          : $TotalUniqueUsers"
+Write-Host "  ├─ Active           : $ActiveUniqueUsers"
+Write-Host "  └─ Eligible         : $EligibleUniqueUsers"
+Write-Host "Unique SPN            : $TotalUniqueSPN"
+Write-Host "  ├─ Active           : $ActiveUniqueSPN"
+Write-Host "  └─ Eligible         : $EligibleUniqueSPN"
+if ($TotalUniqueOther -gt 0) { Write-Host "Unique Other Objects  : $TotalUniqueOther" -ForegroundColor Yellow }
+
+Write-Host "`nCompleted." -ForegroundColor Green
+```
 
