@@ -1224,4 +1224,23 @@ if ($TotalUniqueOther -gt 0) { Write-Host "Unique Other Objects  : $TotalUniqueO
 
 Write-Host "`nCompleted." -ForegroundColor Green
 ```
+### Microsoft Graph Permissions & Descriptions
+```powershell
+$response = Invoke-WebRequest -Uri "https://graphpermissions.merill.net/permission/"
+
+$matches = [regex]::Matches(
+    $response.Content,
+    '<td><a href=".*?">(.*?)</a></td>\s*<td>(.*?)</td>',
+    [System.Text.RegularExpressions.RegexOptions]::Singleline
+)
+
+$result = foreach ($match in $matches) {
+    [PSCustomObject]@{
+        Permission  = $match.Groups[1].Value.Trim()
+        Description = ($match.Groups[2].Value -replace '<.*?>','').Trim()
+    }
+}
+
+$result | Format-Table -AutoSize
+```
 
