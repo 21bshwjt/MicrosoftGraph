@@ -1243,4 +1243,97 @@ $result = foreach ($match in $matches) {
 
 $result | Format-Table -AutoSize
 ```
+### Block-AppClientSecrets
+```powershell
+#==============================================================
+# Block client secrets on a specific Entra app registration
+#==============================================================
 
+#--------------------------------------------------------------
+# Variables
+#--------------------------------------------------------------
+$appDisplayName    = "Your App Name"          # <-- the app registration to protect
+$policyDisplayName = "Block client secrets"
+
+#--------------------------------------------------------------
+# Connect to Microsoft Graph
+#--------------------------------------------------------------
+Connect-MgGraph -Scopes "Policy.Read.All","Policy.ReadWrite.ApplicationConfiguration","Application.ReadWrite.All"
+
+#--------------------------------------------------------------
+# Review the tenant default app management policy
+#--------------------------------------------------------------
+Get-MgPolicyDefaultAppManagementPolicy | ConvertTo-Json -Depth 10
+
+#--------------------------------------------------------------
+# Create the blocking policy (skipped if it already exists)
+#--------------------------------------------------------------
+$existing = (Invoke-MgGraphRequest -Method GET `
+    -Uri "https://graph.microsoft.com/v1.0/policies/appManagementPolicies").value |
+    Where-Object { $_.displayName -eq $policyDisplayName }
+
+if ($existing) {
+    $policy = $existing | Select-Object -First 1
+    Write-Host "Policy already exists: $($policy.id)"
+}
+else {
+    $body = @"
+{
+  "displayName": "$policyDisplayName",
+  "description": "Blocks password and symmetric key credentials on assigned apps",
+  "isEnabled": true,
+  "restrictions": {
+    "passwordCredentials": [
+      {
+        "restrictionType": "passwordAddition",
+        "state": "enabled",
+        "maxLifetime": null,
+        "restrictForAppsCreatedAfterDateTime": "2019-01-01T00:00:00Z"
+      },
+      {
+        "restrictionType": "symmetricKeyAddition",
+        "state": "enabled",
+        "maxLifetime": null,
+        "restrictForAppsCreatedAfterDateTime": "2019-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+"@
+
+    $policy = Invoke-MgGraphRequest -Method POST `
+        -Uri "https://graph.microsoft.com/v1.0/policies/appManagementPolicies" `
+        -Body $body -ContentType "application/json"
+
+    Write-Host "Policy created: $($policy.id)"
+}
+
+#--------------------------------------------------------------
+# Get the target app registration
+#--------------------------------------------------------------
+$app = Get-MgApplication -Filter "displayName eq '$appDisplayName'"
+
+if (-not $app) { throw "App '$appDisplayName' not found." }
+if (@($app).Count -gt 1) { throw "More than one app named '$appDisplayName'. Use Get-MgApplication -ApplicationId <object-id>." }
+
+$app | Select-Object DisplayName, Id, AppId   # confirm it's the right app
+
+#--------------------------------------------------------------
+# Assign the policy to the app
+#--------------------------------------------------------------
+$refBody = @{
+    "@odata.id" = "https://graph.microsoft.com/v1.0/policies/appManagementPolicies/$($policy.id)"
+} | ConvertTo-Json
+
+Invoke-MgGraphRequest -Method POST `
+    -Uri "https://graph.microsoft.com/v1.0/applications/$($app.Id)/appManagementPolicies/`$ref" `
+    -Body $refBody -ContentType "application/json"
+
+#--------------------------------------------------------------
+# Verify the assignment
+#--------------------------------------------------------------
+(Invoke-MgGraphRequest -Method GET `
+    -Uri "https://graph.microsoft.com/v1.0/applications/$($app.Id)/appManagementPolicies").value |
+    ForEach-Object { [pscustomobject]$_ } |
+    Select-Object displayName, id, isEnabled
+```
